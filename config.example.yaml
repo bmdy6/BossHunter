@@ -113,7 +113,8 @@ throttle:
 
 ai:
   provider: "anthropic"
-  service: "anthropic"           # anthropic / deepseek / doubao / custom
+  # service_tier: "priority"    # 仅 openai 服务使用；不配置则不发送
+  service: "anthropic"           # anthropic / openai / deepseek / doubao / custom
   model: "claude-sonnet-4-6"
   thinking: "auto"               # auto / disabled / enabled / off
   thinking_budget: 2048           # thinking=enabled 时使用，至少 1024

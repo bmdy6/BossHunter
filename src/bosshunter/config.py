@@ -34,8 +34,14 @@ CITY_CODES: dict[str, str] = {
 
 
 SUPPORTED_AI_PROVIDERS = {"anthropic", "openai_compatible"}
-SUPPORTED_AI_SERVICES = {"anthropic", "deepseek", "doubao", "custom"}
+SUPPORTED_AI_SERVICES = {"anthropic", "openai", "deepseek", "doubao", "custom"}
 AI_SERVICE_PRESETS: dict[str, dict[str, str]] = {
+    "openai": {
+        "provider": "openai_compatible",
+        "label": "OpenAI",
+        "base_url": "https://api.openai.com/v1",
+        "key_env": "OPENAI_API_KEY",
+    },
     "anthropic": {
         "provider": "anthropic",
         "label": "Claude / Anthropic",
@@ -403,7 +409,7 @@ def _validate_ai_provider(config: dict[str, Any]) -> None:
         ai_cfg["service"] = "custom"
         service = "custom"
     if service not in SUPPORTED_AI_SERVICES:
-        raise ValueError("当前版本支持 Claude、DeepSeek、豆包或自定义 OpenAI 兼容接口。")
+        raise ValueError("当前版本支持 Claude、OpenAI、DeepSeek、豆包或自定义 OpenAI 兼容接口。")
     expected_provider = AI_SERVICE_PRESETS[service]["provider"]
     if provider != expected_provider:
         ai_cfg["provider"] = expected_provider

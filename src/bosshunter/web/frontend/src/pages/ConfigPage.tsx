@@ -14,6 +14,13 @@ import { useState, useEffect, useRef } from 'react'
 import { PLATFORM_LABELS, PLATFORM_SHORT_LABELS } from '@/lib/platforms'
 
 const AI_SERVICES = {
+  openai: {
+    label: 'OpenAI',
+    provider: 'openai_compatible',
+    baseUrl: 'https://api.openai.com/v1',
+    defaultModel: '',
+    keyEnv: 'OPENAI_API_KEY',
+  },
   anthropic: {
     label: 'Claude / Anthropic',
     provider: 'anthropic',

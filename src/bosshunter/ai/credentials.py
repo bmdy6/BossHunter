@@ -318,6 +318,8 @@ def get_ai_api_key(config: dict) -> str | None:
     """Resolve a standard API key from config first, then env, without exposing its value."""
     ai_cfg = config.get("ai", {}) if isinstance(config, dict) else {}
     service = get_ai_service(config)
+    if service == "openai":
+        return ai_cfg.get("api_key") or os.environ.get("OPENAI_API_KEY")
     if service == "deepseek":
         return (
             ai_cfg.get("api_key")
@@ -349,6 +351,7 @@ def get_ai_key_source(config: dict) -> str | None:
         return "本地配置（Auth Token）"
     service = get_ai_service(config)
     candidates = {
+        "openai": ("OPENAI_API_KEY",),
         "deepseek": ("DEEPSEEK_API_KEY", "OPENAI_API_KEY"),
         "doubao": ("ARK_API_KEY", "OPENAI_API_KEY"),
         "custom": ("OPENAI_API_KEY", "ANTHROPIC_API_KEY"),
@@ -364,6 +367,8 @@ def get_ai_base_url(config: dict) -> str | None:
     """Resolve the service-specific API base URL from config first, then env, then preset."""
     ai_cfg = config.get("ai", {}) if isinstance(config, dict) else {}
     service = get_ai_service(config)
+    if service == "openai":
+        return ai_cfg.get("base_url") or os.environ.get("OPENAI_BASE_URL") or AI_SERVICE_PRESETS[service]["base_url"]
     if service == "deepseek":
         return (
             ai_cfg.get("base_url")
@@ -394,6 +399,7 @@ def get_ai_base_url_source(config: dict) -> str | None:
         return "本地配置"
     service = get_ai_service(config)
     env_names = {
+        "openai": ("OPENAI_BASE_URL",),
         "deepseek": ("DEEPSEEK_BASE_URL", "OPENAI_BASE_URL"),
         "doubao": ("ARK_BASE_URL", "OPENAI_BASE_URL"),
         "custom": ("OPENAI_BASE_URL", "ANTHROPIC_BASE_URL"),
@@ -619,7 +625,8 @@ def call_openai_compatible_text(
         return None
 
     mode, budget = resolve_thinking_options(config, purpose)
-    strategies = _openai_thinking_strategies(mode, budget, max_tokens)
+    official_openai = get_ai_service(config) == "openai"
+    strategies = _openai_thinking_strategies("off" if official_openai else mode, budget, max_tokens)
     request_timeout = _coerce_timeout(timeout if timeout is not None else ai_cfg.get("timeout_seconds", 60))
     thinking_rejected = False
     compatibility_error: Exception | None = None
@@ -631,10 +638,14 @@ def call_openai_compatible_text(
         payload = {
             "model": model,
             "messages": [{"role": "user", "content": prompt}],
-            "max_tokens": token_limit,
-            "temperature": 0.2,
+            "max_completion_tokens" if official_openai else "max_tokens": token_limit,
             **overrides,
         }
+        # Official OpenAI reasoning models require the default temperature.
+        if not official_openai:
+            payload["temperature"] = 0.2
+        if official_openai and ai_cfg.get("service_tier"):
+            payload["service_tier"] = ai_cfg["service_tier"]
         try:
             response = httpx.post(
                 f"{base_url.rstrip('/')}/chat/completions",
